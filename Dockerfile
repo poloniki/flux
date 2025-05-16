@@ -23,15 +23,16 @@ RUN useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
 WORKDIR /app
 
 # Fix NumPy version for compatibility with OpenCV
-RUN pip install --no-cache-dir numpy==1.26.4
 
 # Install OpenCV first
-RUN pip install --no-cache-dir opencv-python==4.9.0.80
 
-# Get sd-scripts from kohya-ss and install them
-RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
-    cd sd-scripts && \
-    pip install --no-cache-dir -r ./requirements.txt
+# Copy the current directory (sd-scripts) to the container
+COPY . /app/
+
+# Install dependencies from the existing requirements.txt
+RUN pip install --no-cache-dir -r ./requirements.txt
+RUN pip install --no-cache-dir numpy==1.26.4
+RUN pip install --no-cache-dir opencv-python==4.9.0.80
 
 # Install Torch, Torchvision, and Torchaudio for CUDA 12.4
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124

@@ -31,6 +31,7 @@ services:
       --max_train_epochs ${MAX_TRAIN_EPOCHS:-20}
       --network_dim ${NETWORK_DIM:-8}
       --batch_size ${BATCH_SIZE:-64}
+      --no-auto-caption
     # For newer Docker versions, use deploy section
     deploy:
       resources:
