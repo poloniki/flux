@@ -25,14 +25,21 @@ services:
     entrypoint: []
     # Default command to run, can be overridden from command line
     command: >
+      bash -c "
+      if [ ! -f /app/flux_train_network.py ] && [ ! -d /app/sd-scripts ]; then
+        echo 'Cloning sd-scripts repository...'
+        cd /app && git clone -b sd3 https://github.com/kohya-ss/sd-scripts
+      fi &&
       python3 /app/train_model.py
       --images_folder /input_images
-      --model_name "${MODEL_NAME:-my-car-model}"
-      --trigger_word "${TRIGGER_WORD:-<car_cheb>}"
+      --model_name \"${MODEL_NAME:-my-car-model}\"
+      --trigger_word \"${TRIGGER_WORD:-<car_cheb>}\"
       --resolution ${RESOLUTION:-1024}
       --max_train_epochs ${MAX_TRAIN_EPOCHS:-20}
       --network_dim ${NETWORK_DIM:-8}
       --batch_size ${BATCH_SIZE:-64}
+      --flux_path ${FLUX_PATH:-/app/sd-scripts/flux_train_network.py}
+      "
     # Use runtime: nvidia for older Docker versions
     runtime: nvidia
     # For newer Docker versions, also keep the deploy section
