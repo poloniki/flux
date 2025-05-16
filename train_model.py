@@ -13,6 +13,26 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 from library import captions
 
+def safe_chmod(path, mode):
+    """Attempt to chmod a path but continue if it fails."""
+    try:
+        os.chmod(path, mode)
+    except (PermissionError, OSError) as e:
+        print(f"Warning: Could not change permissions for {path}: {e}")
+        print(f"Continuing anyway...")
+
+def safe_makedirs(path, mode=0o777):
+    """Safely create directories with given mode and continue if chmod fails."""
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
+            safe_chmod(path, mode)
+        else:
+            print(f"Directory {path} already exists, skipping chmod")
+    except Exception as e:
+        print(f"Warning: Could not create or set permissions for directory {path}: {e}")
+        print(f"Continuing anyway...")
+
 def resize_image(image_path, output_path, size):
     """Resize an image while maintaining aspect ratio."""
     from PIL import Image
@@ -32,10 +52,8 @@ def create_dataset(images_folder, destination_folder, size=1024, auto_caption=Tr
     """Create a dataset with images and captions."""
     print(f"Creating dataset from {images_folder} to {destination_folder}")
     
-    if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder, exist_ok=True, mode=0o777)
-        # Ensure the directory has the right permissions
-        os.chmod(destination_folder, 0o777)
+    # Create destination folder with proper permissions if it doesn't exist
+    safe_makedirs(destination_folder, 0o777)
 
     # Get all image files in the folder
     image_files = []
@@ -48,7 +66,7 @@ def create_dataset(images_folder, destination_folder, size=1024, auto_caption=Tr
         try:
             new_image_path = copy(str(image_path), destination_folder)
             # Ensure the copied file has the right permissions
-            os.chmod(new_image_path, 0o666)
+            safe_chmod(new_image_path, 0o666)
         except PermissionError:
             print(f"Permission error copying {image_path}. Trying to continue...")
             continue
@@ -148,15 +166,11 @@ def main():
     # Create output folders
     output_name = slugify(args.model_name)
     output_dir = Path(f"outputs/{output_name}")
-    output_dir.mkdir(parents=True, exist_ok=True, mode=0o777)
-    # Ensure the directory has the right permissions
-    os.chmod(output_dir, 0o777)
+    safe_makedirs(output_dir, 0o777)
     
     # Create dataset folder
     dataset_dir = Path(f"datasets/{output_name}")
-    dataset_dir.mkdir(parents=True, exist_ok=True, mode=0o777)
-    # Ensure the directory has the right permissions
-    os.chmod(dataset_dir, 0o777)
+    safe_makedirs(dataset_dir, 0o777)
     
     # Process images and create dataset
     create_dataset(
