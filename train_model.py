@@ -122,7 +122,7 @@ def main():
     parser.add_argument("--max_train_epochs", type=int, default=20, help="Maximum training epochs")
     parser.add_argument("--save_every_n_epochs", type=int, default=1, help="Save every N epochs")
     parser.add_argument("--trigger_word", type=str, default="", help="Trigger word for the model")
-    parser.add_argument("--num_repeats", type=int, default=10, help="Number of repeats per image")
+    parser.add_argument("--num_repeats", type=int, default=20, help="Number of repeats per image")
     parser.add_argument("--batch_size", type=int, default=64, help="Training batch size")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--workers", type=int, default=2, help="Number of workers")
@@ -175,12 +175,39 @@ def main():
         f.write(sample_prompts)
     print(f"Generated sample prompts at {sample_prompts_path}")
     
+    # Determine the correct path to flux_train_network.py
+    # Check if we're inside the sd-scripts directory or not
+    flux_train_path = ""
+    if os.path.exists("flux_train_network.py"):
+        # We're in the sd-scripts directory
+        flux_train_path = "flux_train_network.py"
+    elif os.path.exists("./flux_train_network.py"):
+        flux_train_path = "./flux_train_network.py"
+    elif os.path.exists("../flux_train_network.py"):
+        flux_train_path = "../flux_train_network.py"
+    else:
+        # Use absolute path
+        possible_paths = [
+            "/app/flux_train_network.py",
+            "/app/sd-scripts/flux_train_network.py"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                flux_train_path = path
+                break
+    
+    if not flux_train_path:
+        print("Error: Could not find flux_train_network.py. Please check your installation.")
+        return 1
+        
+    print(f"Using flux_train_network.py at: {flux_train_path}")
+    
     # Construct training command
     cmd = [
         "accelerate", "launch",
         "--mixed_precision", "bf16",
         "--num_cpu_threads_per_process", "1",
-        "sd-scripts/flux_train_network.py",
+        flux_train_path,
         "--pretrained_model_name_or_path", "models/unet/flux1-dev.sft",
         "--clip_l", "models/clip/clip_l.safetensors",
         "--t5xxl", "models/clip/t5xxl_fp16.safetensors",
