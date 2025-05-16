@@ -19,8 +19,6 @@ services:
       - ./datasets:/app/datasets
       - ./outputs:/app/outputs
       - ${INPUT_IMAGES_PATH:-./input_images}:/input_images
-      # Copy sd-scripts directory structure correctly
-      - ./:/app
     # Override the entrypoint to allow running with docker-compose
     entrypoint: []
     # Default command to run, can be overridden from command line
@@ -33,9 +31,7 @@ services:
       --max_train_epochs ${MAX_TRAIN_EPOCHS:-20}
       --network_dim ${NETWORK_DIM:-8}
       --batch_size ${BATCH_SIZE:-64}
-    # Use runtime: nvidia for older Docker versions
-    runtime: nvidia
-    # For newer Docker versions, also keep the deploy section
+    # For newer Docker versions, use deploy section
     deploy:
       resources:
         reservations:
