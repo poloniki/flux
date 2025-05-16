@@ -7,9 +7,11 @@ services:
       dockerfile: Dockerfile
     image: flux-trainer
     container_name: flux-trainer
+    # Run container as the host user to avoid permission issues with mounted volumes
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
+      - PUID=${UID:-1000}
+      - PGID=${GID:-1000}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       # Add NVIDIA environment variables
       - NVIDIA_VISIBLE_DEVICES=all

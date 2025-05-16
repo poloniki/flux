@@ -40,12 +40,15 @@ RUN pip install torch torchvision torchaudio --index-url https://download.pytorc
 # Fix triton version
 RUN pip install --upgrade --force-reinstall triton==2.1.0
 
-# Create directory structure
+# Create directory structure with proper permissions
 RUN mkdir -p /app/models/unet \
     /app/models/clip \
     /app/models/vae \
     /app/datasets \
-    /app/outputs
+    /app/outputs \
+    && chmod -R 777 /app/models \
+    && chmod -R 777 /app/datasets \
+    && chmod -R 777 /app/outputs
 
 # Copy our training script and library
 COPY train_model.py /app/

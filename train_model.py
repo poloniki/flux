@@ -33,7 +33,9 @@ def create_dataset(images_folder, destination_folder, size=1024, auto_caption=Tr
     print(f"Creating dataset from {images_folder} to {destination_folder}")
     
     if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder)
+        os.makedirs(destination_folder, exist_ok=True, mode=0o777)
+        # Ensure the directory has the right permissions
+        os.chmod(destination_folder, 0o777)
 
     # Get all image files in the folder
     image_files = []
@@ -43,7 +45,13 @@ def create_dataset(images_folder, destination_folder, size=1024, auto_caption=Tr
     for image_path in image_files:
         # Copy the image to the destination folder
         from shutil import copy
-        new_image_path = copy(str(image_path), destination_folder)
+        try:
+            new_image_path = copy(str(image_path), destination_folder)
+            # Ensure the copied file has the right permissions
+            os.chmod(new_image_path, 0o666)
+        except PermissionError:
+            print(f"Permission error copying {image_path}. Trying to continue...")
+            continue
 
         # Resize the image
         resize_image(new_image_path, new_image_path, size)
