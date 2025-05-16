@@ -12,13 +12,14 @@ RUN apt-get update -y && apt-get install -y \
     libxext6
 
 # Define environment variables for UID and GID
-ENV PUID=${PUID:-1000}
-ENV PGID=${PGID:-1000}
+ENV UID=${UID:-1000}
+ENV GID=${GID:-1000}
+ENV OPENAI_API_KEY=${OPENAI_API_KEY}
 
 # Create a group with the specified GID
-RUN groupadd -g "${PGID}" appuser
+RUN groupadd -g "${GID}" appuser
 # Create a user with the specified UID and GID
-RUN useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
+RUN useradd -m -s /bin/sh -u "${UID}" -g "${GID}" appuser
 
 WORKDIR /app
 

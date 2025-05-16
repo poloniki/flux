@@ -148,11 +148,15 @@ def main():
     # Create output folders
     output_name = slugify(args.model_name)
     output_dir = Path(f"outputs/{output_name}")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True, mode=0o777)
+    # Ensure the directory has the right permissions
+    os.chmod(output_dir, 0o777)
     
     # Create dataset folder
     dataset_dir = Path(f"datasets/{output_name}")
-    dataset_dir.mkdir(parents=True, exist_ok=True)
+    dataset_dir.mkdir(parents=True, exist_ok=True, mode=0o777)
+    # Ensure the directory has the right permissions
+    os.chmod(dataset_dir, 0o777)
     
     # Process images and create dataset
     create_dataset(
@@ -183,32 +187,35 @@ def main():
         f.write(sample_prompts)
     print(f"Generated sample prompts at {sample_prompts_path}")
     
-    # Determine the correct path to train_network.py
-    # Check if we're inside the sd-scripts directory or not
+    # Determine the correct path to flux_train_network.py
     train_network_path = ""
-    if os.path.exists("train_network.py"):
-        # We're in the sd-scripts directory
-        train_network_path = "train_network.py"
-    elif os.path.exists("./train_network.py"):
-        train_network_path = "./train_network.py"
-    elif os.path.exists("../train_network.py"):
-        train_network_path = "../train_network.py"
-    else:
-        # Use absolute path
-        possible_paths = [
-            "/app/train_network.py",
-            "/app/sd-scripts/train_network.py"
-        ]
-        for path in possible_paths:
-            if os.path.exists(path):
-                train_network_path = path
+    possible_train_scripts = ["flux_train_network.py", "train_network.py"]
+    
+    # Check several possible locations for the training script
+    search_paths = [
+        ".",  # Current directory
+        "./",  # Also current directory (explicit notation)
+        "..",  # Parent directory
+        "/app",  # App directory in Docker
+        "/app/sd-scripts",  # sd-scripts in Docker
+        "sd-scripts"  # sd-scripts subdirectory
+    ]
+    
+    # First prioritize flux_train_network.py
+    for script in possible_train_scripts:
+        if train_network_path:
+            break
+        for path in search_paths:
+            potential_path = os.path.join(path, script)
+            if os.path.exists(potential_path):
+                train_network_path = potential_path
                 break
     
     if not train_network_path:
-        print("Error: Could not find train_network.py. Please check your installation.")
+        print("Error: Could not find flux_train_network.py or train_network.py. Please check your installation.")
         return 1
         
-    print(f"Using train_network.py at: {train_network_path}")
+    print(f"Using training script at: {train_network_path}")
     
     # Construct training command
     cmd = [
