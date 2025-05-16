@@ -112,57 +112,6 @@ def create_sample_prompts(trigger_word, num_samples=4):
     
     return "\n".join([f"{trigger_word}, {prompt}" for prompt in base_prompts[:num_samples]])
 
-def find_flux_train_script():
-    """Find the flux_train_network.py script in various possible locations."""
-    possible_paths = [
-        # Direct paths
-        "flux_train_network.py",
-        "./flux_train_network.py",
-        "../flux_train_network.py",
-        
-        # Absolute paths
-        "/app/flux_train_network.py",
-        "/app/sd-scripts/flux_train_network.py",
-        
-        # Paths relative to current directory
-        os.path.join(os.getcwd(), "flux_train_network.py"),
-        os.path.join(os.getcwd(), "sd-scripts", "flux_train_network.py"),
-        
-        # Common locations within the repository
-        "/sd-scripts/flux_train_network.py"
-    ]
-    
-    # Find the script using find command for deeper search
-    try:
-        find_result = subprocess.run(
-            ["find", "/", "-name", "flux_train_network.py", "-type", "f"],
-            capture_output=True, 
-            text=True,
-            timeout=30  # Limit search time
-        )
-        if find_result.returncode == 0 and find_result.stdout:
-            additional_paths = find_result.stdout.strip().split('\n')
-            possible_paths.extend(additional_paths)
-    except (subprocess.SubprocessError, FileNotFoundError):
-        print("Warning: Unable to perform deep file search.")
-    
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_paths = [p for p in possible_paths if not (p in seen or seen.add(p))]
-    
-    # Check each path
-    for path in unique_paths:
-        if os.path.isfile(path):
-            print(f"Found flux_train_network.py at: {path}")
-            return path
-    
-    # If we're here, we couldn't find the script
-    print("Error: flux_train_network.py not found. Searched in:")
-    for path in unique_paths:
-        print(f"  - {path}")
-    
-    return None
-
 def main():
     parser = argparse.ArgumentParser(description="Train a Flux model with LoRA")
     parser.add_argument("--images_folder", required=True, help="Path to folder containing images and captions")
@@ -178,7 +127,6 @@ def main():
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--workers", type=int, default=2, help="Number of workers")
     parser.add_argument("--no-auto-caption", action="store_true", help="Disable automatic caption generation")
-    parser.add_argument("--flux_path", type=str, help="Path to flux_train_network.py if known")
     
     args = parser.parse_args()
     
@@ -227,20 +175,39 @@ def main():
         f.write(sample_prompts)
     print(f"Generated sample prompts at {sample_prompts_path}")
     
-    # Get the flux_train_network.py path
-    flux_train_path = args.flux_path if args.flux_path else find_flux_train_script()
+    # Determine the correct path to train_network.py
+    # Check if we're inside the sd-scripts directory or not
+    train_network_path = ""
+    if os.path.exists("train_network.py"):
+        # We're in the sd-scripts directory
+        train_network_path = "train_network.py"
+    elif os.path.exists("./train_network.py"):
+        train_network_path = "./train_network.py"
+    elif os.path.exists("../train_network.py"):
+        train_network_path = "../train_network.py"
+    else:
+        # Use absolute path
+        possible_paths = [
+            "/app/train_network.py",
+            "/app/sd-scripts/train_network.py"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                train_network_path = path
+                break
     
-    if not flux_train_path:
-        print("Could not find flux_train_network.py. Please provide it with --flux_path")
-        print("You can also try running: find / -name flux_train_network.py 2>/dev/null")
+    if not train_network_path:
+        print("Error: Could not find train_network.py. Please check your installation.")
         return 1
         
+    print(f"Using train_network.py at: {train_network_path}")
+    
     # Construct training command
     cmd = [
         "accelerate", "launch",
         "--mixed_precision", "bf16",
         "--num_cpu_threads_per_process", "1",
-        flux_train_path,
+        train_network_path,
         "--pretrained_model_name_or_path", "models/unet/flux1-dev.sft",
         "--clip_l", "models/clip/clip_l.safetensors",
         "--t5xxl", "models/clip/t5xxl_fp16.safetensors",
