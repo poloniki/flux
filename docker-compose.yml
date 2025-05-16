@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  flux-trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flux-trainer
+    container_name: flux-trainer
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./models:/app/models
+      - ./datasets:/app/datasets
+      - ./outputs:/app/outputs
+      - ${INPUT_IMAGES_PATH:-./input_images}:/input_images
+    # Override the entrypoint to allow running with docker-compose
+    entrypoint: []
+    # Default command to run, can be overridden from command line
+    command: >
+      python3 /app/train_model.py
+      --images_folder /input_images
+      --model_name "${MODEL_NAME:-my-car-model}"
+      --trigger_word "${TRIGGER_WORD:-<car_cheb>}"
+      --resolution ${RESOLUTION:-1024}
+      --max_train_epochs ${MAX_TRAIN_EPOCHS:-20}
+      --network_dim ${NETWORK_DIM:-8}
+      --batch_size ${BATCH_SIZE:-64}
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+    restart: "no" 
